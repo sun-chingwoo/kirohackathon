@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log Failure Analyzer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #fafaf8;
+      color: #000;
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      border: 3px solid #000;
+      box-shadow: 8px 8px 0px #000;
+      padding: 40px;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      border-bottom: 4px solid #000;
+      padding-bottom: 12px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 32px;
+      letter-spacing: 1px;
+    }
+
+    .input-section {
+      margin-bottom: 24px;
+    }
+
+    .label {
+      display: block;
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
+      color: #000;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 240px;
+      padding: 16px;
+      border: 3px solid #000;
+      background: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      resize: vertical;
+      font-weight: 500;
+    }
+
+    textarea:focus {
+      outline: none;
+      box-shadow: inset 0 0 0 2px #000, 4px 4px 0px #000;
+    }
+
+    textarea::placeholder {
+      color: #999;
+    }
+
+    button {
+      background: #000;
+      color: #fff;
+      border: 3px solid #000;
+      padding: 14px 32px;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      margin-top: 16px;
+      font-family: 'Courier New', monospace;
+      transition: all 0.1s ease;
+    }
+
+    button:hover:not(:disabled) {
+      box-shadow: 4px 4px 0px #000;
+      transform: translate(-2px, -2px);
+    }
+
+    button:active:not(:disabled) {
+      transform: translate(0, 0);
+      box-shadow: 0 0 0 #000;
+    }
+
+    button:disabled {
+      background: #ccc;
+      border-color: #999;
+      cursor: not-allowed;
+      color: #666;
+    }
+
+    .results {
+      margin-top: 32px;
+      padding: 0;
+      display: none;
+      border: 3px solid #000;
+      background: #fffef5;
+    }
+
+    .results.show {
+      display: block;
+    }
+
+    .result-row {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 24px;
+      padding: 20px;
+      border-bottom: 2px solid #000;
+    }
+
+    .result-row:last-child {
+      border-bottom: none;
+    }
+
+    .result-label {
+      font-weight: 900;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #000;
+      padding-top: 2px;
+    }
+
+    .result-value {
+      color: #000;
+      word-break: break-word;
+      white-space: pre-wrap;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      background: #fff;
+      padding: 12px;
+      border: 2px solid #000;
+      font-weight: 700;
+    }
+
+    .result-value.empty {
+      color: #999;
+      font-style: italic;
+    }
+
+    /* Color-coded results */
+    .result-row:nth-child(2) .result-value {
+      background: #ffe6e6;
+      border-color: #d32f2f;
+    }
+
+    .result-row:nth-child(3) .result-value {
+      background: #fff3e0;
+      border-color: #f57c00;
+    }
+
+    .result-row:nth-child(4) .result-value {
+      background: #e8f5e9;
+      border-color: #2e7d32;
+    }
+
+    .result-row:nth-child(5) .result-value {
+      background: #e3f2fd;
+      border-color: #1976d2;
+    }
+
+    .error {
+      margin-top: 16px;
+      padding: 16px;
+      background: #fff3f3;
+      border: 3px solid #d32f2f;
+      color: #d32f2f;
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .results-header {
+      background: #000;
+      color: #fff;
+      padding: 16px 20px;
+      font-weight: 900;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border-bottom: 3px solid #000;
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 24px;
+        box-shadow: 4px 4px 0px #000;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      .result-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 16px;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Log Analyzer</h1>
+    <div class="subtitle">Diagnose failures instantly</div>
+
+    <div class="input-section">
+      <label class="label">Paste Your Log</label>
+      <textarea id="logInput" placeholder="Paste raw log text here. Stack traces, errors, warnings — anything."></textarea>
+      <button id="analyzeBtn">▶ Analyze Now</button>
+    </div>
+
+    <div id="error" class="error" style="display: none;"></div>
+
+    <div id="results" class="results">
+      <div class="results-header">Analysis Results</div>
+      
+      <div class="result-row">
+        <div class="result-label">Failure</div>
+        <div class="result-value" id="failureValue">—</div>
+      </div>
+
+      <div class="result-row">
+        <div class="result-label">Component</div>
+        <div class="result-value" id="componentValue">—</div>
+      </div>
+
+      <div class="result-row">
+        <div class="result-label">Evidence</div>
+        <div class="result-value" id="evidenceValue">—</div>
+      </div>
+
+      <div class="result-row">
+        <div class="result-label">Fix</div>
+        <div class="result-value" id="fixValue">—</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const logInput = document.getElementById('logInput');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const resultsDiv = document.getElementById('results');
+    const errorDiv = document.getElementById('error');
+
+    analyzeBtn.addEventListener('click', async () => {
+      const logText = logInput.value.trim();
+      if (!logText) {
+        errorDiv.textContent = '❌ Please paste a log to analyze';
+        errorDiv.style.display = 'block';
+        resultsDiv.classList.remove('show');
+        return;
+      }
+
+      errorDiv.style.display = 'none';
+      analyzeBtn.disabled = true;
+      analyzeBtn.textContent = '⟳ Analyzing...';
+
+      try {
+        const response = await fetch('/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ log: logText })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        document.getElementById('failureValue').textContent = data.failure || '—';
+        document.getElementById('failureValue').classList.toggle('empty', !data.failure);
+
+        document.getElementById('componentValue').textContent = data.affected_component !== null ? data.affected_component : '—';
+        document.getElementById('componentValue').classList.toggle('empty', data.affected_component === null);
+
+        document.getElementById('evidenceValue').textContent = data.evidence || '—';
+        document.getElementById('evidenceValue').classList.toggle('empty', !data.evidence);
+
+        document.getElementById('fixValue').textContent = data.suggested_fix || '—';
+        document.getElementById('fixValue').classList.toggle('empty', !data.suggested_fix);
+
+        resultsDiv.classList.add('show');
+      } catch (err) {
+        errorDiv.textContent = `❌ Error: ${err.message}`;
+        errorDiv.style.display = 'block';
+        resultsDiv.classList.remove('show');
+      } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = '▶ Analyze Now';
+      }
+    });
+
+    // Allow Enter+Ctrl to submit
+    logInput.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        analyzeBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>
